@@ -340,13 +340,6 @@ app.add_handler(
 print("Bot Running...")
 
 app.run_polling()",
-  port=5432,
-  user="postgres",
-  password="ismailidris1",
-  database="postgres"
-)
-
-cursor = db.cursor()
 
 logged_students = {}
 
