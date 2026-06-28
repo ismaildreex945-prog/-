@@ -7,51 +7,7 @@ from telegram.ext import (
     MessageHandler,
     ContextTypes,
     filters
-)
 
-# ==========================
-# إعدادات البوت
-# ==========================
-
-TOKEN = "8346456077:AAEIxFuw27dTX9sDAhNEPy6kNrQ4YROLGPI"
-
-client = Groq(
-    api_key="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"
-)
-
-db = psycopg2.connect(
-  host="import psycopg2
-from groq import Groq
-from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import (
-    ApplicationBuilder,
-    CommandHandler,
-    MessageHandler,
-    ContextTypes,
-    filters
-)
-
-# ==========================
-# إعدادات البوت
-# ==========================
-
-TOKEN = "8346456077:AAEIxFuw27dTX9sDAhNEPy6kNrQ4YROLGPI"
-
-client = Groq(
-    api_key="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"
-)
-
-db = psycopg2.connect(
-  host="import psycopg2
-from groq import Groq
-from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import (
-    ApplicationBuilder,
-    CommandHandler,
-    MessageHandler,
-    ContextTypes,
-    filters
-)
 
 # ==========================
 # إعدادات البوت
