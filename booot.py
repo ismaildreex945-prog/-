@@ -1,6 +1,6 @@
 import mysql.connector
 mydb = mysql.connector.connect(
-  host="10c62286-ismaildreex945-76ee.h.aivencloud.com",
+  host="mysql-10c62286-ismaildreex945-76ee.h.aivencloud.com",
   port=23045,
   user="avnadmin",
   password="AVNS_87pPrZKA-h8TKh3Jg7k",
