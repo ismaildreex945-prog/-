@@ -20,11 +20,12 @@ client = Groq(
     api_key="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"
 )
 
-db = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="1142001",
-    database="my_app"
+mydb = mysql.connector.connect(
+  host="10c62286-ismaildreex945-76ee.h.aivencloud.com",
+  port=23045, # 20168
+  user="avnadmin",
+  password="AVNS_87pPrZKA-h8TKh3Jg7k",
+  database="defaultdb"
 )
 
 cursor = db.cursor()
