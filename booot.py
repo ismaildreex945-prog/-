@@ -1,4 +1,4 @@
-import pasycopg2#
+import psycopg2
 from groq import Groq
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import (
@@ -20,7 +20,7 @@ client = Groq(
 )
 
 db = psycopg2.connect(
-  host="db.rpornaknimwhcayzbodb.supabase.co",
+  host="db.rpornaknimwhcayzbodb.supabase.com",
   port=5432,
   user="postgres",
   password="ismailidris1",
