@@ -1,6 +1,5 @@
-import mysql.connector
+import psycopg2
 from groq import Groq
-
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder,
@@ -20,11 +19,12 @@ client = Groq(
     api_key="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"
 )
 
-db = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="1142001",
-    database="my_app"
+db = psycopg2.connect(
+  host="aws-0-eu-west-1.pooler.supabase.com",
+  port=6543,
+  user="postgres.rpornaknimwhcayzbodb",
+  password="ismailidris1",
+  database="postgres"
 )
 
 cursor = db.cursor()
