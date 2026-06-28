@@ -339,8 +339,6 @@ app.add_handler(
 
 print("Bot Running...")
 
-app.run_polling()",
-
 logged_students = {}
 
 # ==========================
