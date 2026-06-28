@@ -1,4 +1,11 @@
 import mysql.connector
+mydb = mysql.connector.connect(
+  host="mysql-10c62286-ismaildreex945-76ee.h.aivencloud.com",
+  port=23045,
+  user="avnadmin",
+  password="AVNS_87pPrZKA-h8TKh3Jg7k",
+  database="defaultdb"
+)
 from groq import Groq
 
 from telegram import Update, ReplyKeyboardMarkup
@@ -20,13 +27,7 @@ client = Groq(
     api_key="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"
 )
 
-mydb = mysql.connector.connect(
-  host="mysql-10c62286-ismaildreex945-76ee.h.aivencloud.com",
-  port=23045,
-  user="avnadmin",
-  password="AVNS_87pPrZKA-h8TKh3Jg7k",
-  database="defaultdb"
-)
+db = mydb
 
 cursor = db.cursor()
 
