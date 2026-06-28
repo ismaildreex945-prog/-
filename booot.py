@@ -20,7 +20,7 @@ client = Groq(
 )
 
 db = psycopg2.connect(
-  host="db.rpornaknimwhcayzbodb.supabase.com",
+  host="db.rpornaknimwhcayzbodb.supabase.co",
   port=5432,
   user="postgres",
   password="ismailidris1",
