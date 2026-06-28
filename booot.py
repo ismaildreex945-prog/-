@@ -1,6 +1,5 @@
 import mysql.connector
 from groq import Groq
-
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder,
@@ -22,7 +21,7 @@ client = Groq(
 
 db = mysql.connector.connect(
   host="mysql-10c62286-ismaildreex945-76ee.h.aivencloud.com",
-  port=23045,
+  port=20168,
   user="avnadmin",
   password="AVNS_87pPrZKA-h8TKh3Jg7k",
   database="defaultdb"
