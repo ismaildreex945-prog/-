@@ -41,7 +41,7 @@ if (!empty($user['academic_level'])) {
             <a onclick="showStudentSubpage('schedule')"><i class="fas fa-calendar-alt"></i> جدول المحاضرات</a>
             <a onclick="showStudentSubpage('results')"><i class="fas fa-chart-bar"></i> النتائج</a>
             <a onclick="showStudentSubpage('payment')"><i class="fas fa-credit-card"></i> الدفع الإلكتروني</a>
-            <a href="https://t.me/ahmedalfatih7" target="_blank"><i class="fab fa-telegram-plane"></i> بوت تيليجرام</a>
+            <a href="https://t.me/AlribatBot" target="_blank"><i class="fab fa-telegram-plane"></i> بوت تيليجرام</a>
             <a href="logout.php" class="logout"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</a>
         </nav>
     </aside>
