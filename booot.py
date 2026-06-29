@@ -1,10 +1,5 @@
-import psycopg2
-import logging
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
-from groq import Groq
 
 
 class WebServerHandler(BaseHTTPRequestHandler):
@@ -23,6 +18,17 @@ def run_web_server():
 
 threading.Thread(target=run_web_server, daemon=True).start()
 
+
+import psycopg2
+from groq import Groq
+from telegram import Update, ReplyKeyboardMarkup
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    MessageHandler,
+    ContextTypes,
+    filters
+)
 # ==========================
 # إعدادات البوت
 # ==========================
