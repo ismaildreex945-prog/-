@@ -1,13 +1,27 @@
 import psycopg2
+import logging
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 from groq import Groq
-from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import (
-    ApplicationBuilder,
-    CommandHandler,
-    MessageHandler,
-    ContextTypes,
-    filters
-)
+
+
+class WebServerHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html; charset=utf-8')
+        self.end_headers()
+        self.wfile.write("البوت يعمل بنجاح وبشكل مستمر!".encode('utf-8'))
+
+def run_web_server():
+    try:
+        server = HTTPServer(('0.0.0.0', 10000), WebServerHandler)
+        server.serve_forever()
+    except Exception as e:
+        pass
+
+threading.Thread(target=run_web_server, daemon=True).start()
 
 # ==========================
 # إعدادات البوت
