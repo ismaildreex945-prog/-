@@ -169,8 +169,29 @@ def check_student_query(text, telegram_user_id):
             )
             results = cursor.fetchall()
             if results:
-                results_text = "\n".join([f"🔹 {r[0]}: {r[1]}" for r in results])
-                response_parts.append(f"📊 نتائجك:\n{results_text}")
+                lines = []
+                gpa_points = []
+                total_scores = []
+                for r in results:
+                    info = score_to_grade_info(r[1])
+                    line = f"📘 {r[0]}: "
+                    if info["score"] is not None:
+                        line += f"{info['score']:.0f}/100  "
+                    line += f"{info['letter']} ({info['arabic']})"
+                    lines.append(line)
+                    if info["gpa"] is not None:
+                        gpa_points.append(info["gpa"])
+                    if info["score"] is not None:
+                        total_scores.append(info["score"])
+                results_text = "\n".join(lines)
+                msg = f"📊 نتائجك:\n{results_text}\n\n━━━━━━━━━━━━━━━━"
+                if total_scores:
+                    msg += f"\n📊 متوسط الدرجات: {sum(total_scores)/len(total_scores):.1f} / 100"
+                if gpa_points:
+                    gpa = sum(gpa_points) / len(gpa_points)
+                    msg += f"\n🎓 المعدل التراكمي: {gpa:.2f} / 4.00"
+                    msg += f"\n📈 التقدير: {gpa_label(gpa)}"
+                response_parts.append(msg)
             else:
                 response_parts.append("📊 لا توجد نتائج مسجلة حالياً.")
         except Exception as e:
@@ -297,6 +318,78 @@ async def show_courses(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(msg)
 # ==========================
+# حساب المعدل التراكمي
+# ==========================
+
+def score_to_grade_info(grade_val):
+    """
+    يقبل درجة رقمية من 100 أو حرف (A/B/...)
+    يرجع dict فيه: score, letter, arabic, gpa_points
+    """
+    grade_str = str(grade_val).strip()
+
+    # حاول تحوّله لرقم أولاً
+    try:
+        score = float(grade_str)
+    except ValueError:
+        score = None
+
+    if score is not None:
+        # درجة رقمية من 100
+        if score >= 90:
+            letter, arabic, gpa = "A",  "امتياز",      4.0
+        elif score >= 85:
+            letter, arabic, gpa = "B+", "جيد جداً+",   3.5
+        elif score >= 80:
+            letter, arabic, gpa = "B",  "جيد جداً",    3.0
+        elif score >= 75:
+            letter, arabic, gpa = "C+", "جيد+",        2.5
+        elif score >= 70:
+            letter, arabic, gpa = "C",  "جيد",         2.0
+        elif score >= 60:
+            letter, arabic, gpa = "D",  "مقبول",       1.0
+        else:
+            letter, arabic, gpa = "F",  "راسب",        0.0
+    else:
+        # درجة حرفية
+        score = None
+        mapping = {
+            "A+": ("A+", "امتياز+",    4.0),
+            "A":  ("A",  "امتياز",     4.0),
+            "A-": ("A-", "امتياز-",    3.7),
+            "B+": ("B+", "جيد جداً+", 3.3),
+            "B":  ("B",  "جيد جداً",  3.0),
+            "B-": ("B-", "جيد جداً-", 2.7),
+            "C+": ("C+", "جيد+",      2.3),
+            "C":  ("C",  "جيد",       2.0),
+            "C-": ("C-", "جيد-",      1.7),
+            "D+": ("D+", "مقبول+",    1.3),
+            "D":  ("D",  "مقبول",     1.0),
+            "F":  ("F",  "راسب",      0.0),
+        }
+        info = mapping.get(grade_str.upper(), None)
+        if info:
+            letter, arabic, gpa = info
+        else:
+            letter, arabic, gpa = grade_str, grade_str, None
+
+    return {"score": score, "letter": letter, "arabic": arabic, "gpa": gpa}
+
+def gpa_label(gpa):
+    if gpa >= 3.7:   return "ممتاز 🌟"
+    elif gpa >= 3.0: return "جيد جداً ✅"
+    elif gpa >= 2.0: return "جيد 👍"
+    elif gpa >= 1.0: return "مقبول ⚠️"
+    else:            return "ضعيف ❌"
+
+# للتوافق مع الكود القديم
+def grade_to_arabic(grade):
+    return score_to_grade_info(grade)["arabic"]
+
+def grade_to_gpa(grade):
+    return score_to_grade_info(grade)["gpa"]
+
+# ==========================
 # النتائج
 # ==========================
 
@@ -317,15 +410,50 @@ async def show_results(update: Update, context: ContextTypes.DEFAULT_TYPE):
     results = cursor.fetchall()
 
     if not results:
-        await update.message.reply_text("لا توجد نتائج.")
+        await update.message.reply_text("لا توجد نتائج مسجلة بعد.")
         return
 
-    msg = "📊 النتائج:\n\n"
+    msg = "📊 *نتائجك الدراسية:*\n"
+    msg += "━━━━━━━━━━━━━━━━\n\n"
+
+    gpa_points = []
+    total_scores = []
 
     for course in results:
-        msg += f"{course[0]} : {course[1]}\n"
+        course_name = course[0]
+        grade_val   = course[1]
+        info = score_to_grade_info(grade_val)
 
-    await update.message.reply_text(msg)
+        msg += f"📘 {course_name}\n"
+
+        if info["score"] is not None:
+            msg += f"   الدرجة: {info['score']:.0f} / 100\n"
+
+        msg += f"   التقدير: {info['letter']}  ({info['arabic']})\n"
+
+        if info["gpa"] is not None:
+            msg += f"   النقاط: {info['gpa']:.1f} / 4.0\n"
+            gpa_points.append(info["gpa"])
+
+        if info["score"] is not None:
+            total_scores.append(info["score"])
+
+        msg += "\n"
+
+    msg += "━━━━━━━━━━━━━━━━\n"
+
+    if total_scores:
+        avg_score = sum(total_scores) / len(total_scores)
+        msg += f"📊 متوسط الدرجات: {avg_score:.1f} / 100\n"
+
+    if gpa_points:
+        gpa = sum(gpa_points) / len(gpa_points)
+        msg += f"🎓 *المعدل التراكمي (GPA):* {gpa:.2f} / 4.00\n"
+        msg += f"📈 التقدير العام: {gpa_label(gpa)}\n"
+
+    msg += f"📚 عدد المواد: {len(results)}"
+
+    await update.message.reply_text(msg, parse_mode="Markdown")
 
 
 # ==========================
@@ -365,6 +493,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
 
+    # أي زرار من الأزرار الرئيسية يوقف وضع AI والاستفسار
+    main_buttons = ["📄 بياناتي", "📚 موادي", "📊 نتائجي",
+                    "📝 استفسار", "ℹ️ مساعدة", "🤖 اسأل الذكاء الاصطناعي"]
+    if text in main_buttons:
+        context.user_data["ai_mode"] = False
+        context.user_data["waiting_query"] = False
+
     # بيانات الطالب
     if text == "📄 بياناتي":
         await show_info(update, context)
@@ -390,12 +525,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "🤖 مرحباً! أنا المساعد الذكي.\n\n"
             "اكتب سؤالك وسأجيبك بشكل شامل ومفصّل.\n"
             "يمكنك الاستمرار في المحادثة وسأتذكر السياق.\n\n"
-            "اكتب /reset لبدء محادثة جديدة."
+            "اكتب 🔄 إعادة تشغيل لبدء محادثة جديدة."
         )
 
         return
 
-    if text == "/reset" and context.user_data.get("ai_mode"):
+    if text == "🔄 إعادة تشغيل" and context.user_data.get("ai_mode"):
         clear_history(user_id)
         await update.message.reply_text("🔄 تم مسح المحادثة، ابدأ سؤالك من جديد.")
         return
@@ -404,14 +539,21 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await update.message.reply_text("⏳ جاري التفكير...")
 
-        # أولاً تحقق لو الطالب سأل عن بياناته من قاعدة البيانات
-        db_answer = check_student_query(text, user_id)
+        try:
+            # أولاً تحقق لو الطالب سأل عن بياناته من قاعدة البيانات
+            db_answer = check_student_query(text, user_id)
 
-        if db_answer:
-            await update.message.reply_text(db_answer)
-        else:
-            answer = ask_ai(text, user_id=user_id)
-            await update.message.reply_text(answer)
+            if db_answer:
+                await update.message.reply_text(db_answer)
+            else:
+                answer = ask_ai(text, user_id=user_id)
+                await update.message.reply_text(answer)
+
+        except Exception as e:
+            print(f"[AI ERROR] {e}")
+            await update.message.reply_text(
+                f"⚠️ حدث خطأ أثناء معالجة سؤالك:\n{str(e)}"
+            )
 
         return
 # ==========================
@@ -490,17 +632,20 @@ app.add_handler(
     )
 )
 
+async def reset_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.message.from_user.id
+    clear_history(user_id)
+    context.user_data["ai_mode"] = False
+    await update.message.reply_text("🔄 تم إعادة تشغيل المحادثة.")
+
+app.add_handler(CommandHandler("reset", reset_command))
+
 app.add_handler(
     MessageHandler(
         filters.TEXT & ~filters.COMMAND,
         handle_message
     )
 )
-
-print("Bot Running...")
-
-app.run_polling()
-
 
 print("Bot Running...")
 
