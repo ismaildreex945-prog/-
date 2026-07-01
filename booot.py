@@ -55,34 +55,158 @@ logged_students = {}
 # الذكاء الاصطناعي
 # ==========================
 
-def ask_ai(question):
+SYSTEM_PROMPT = """
+أنت مساعد جامعي ذكي ومتخصص تابع لجامعة الرباط الوطني.
+اسمك "المساعد الذكي".
 
+مهمتك الأساسية:
+- مساعدة الطلاب الجامعيين في كل ما يتعلق بدراستهم
+- الإجابة على الأسئلة الأكاديمية بشكل شامل ومفصّل
+- شرح المفاهيم بأمثلة عملية واضحة
+- تقديم نصائح للمذاكرة وإدارة الوقت
+
+المواد التي تتخصص فيها:
+• البرمجة (Python, Java, C++, PHP, JavaScript)
+• قواعد البيانات (SQL, MySQL, MongoDB)
+• الشبكات وأمن المعلومات
+• الذكاء الاصطناعي وتعلم الآلة
+• هندسة البرمجيات وأنماط التصميم
+• الرياضيات والإحصاء
+• أي مادة جامعية أخرى
+
+قواعد الإجابة:
+1. أجب دائماً باللغة العربية إلا لو الطالب سألك بلغة أخرى
+2. إجاباتك شاملة ومفصّلة وليست مختصرة اختصاراً مخلاً
+3. استخدم الأمثلة العملية والكود عند الحاجة
+4. لو الطالب سألك سؤالاً برمجياً، اشرح الكود سطراً سطراً
+5. لو السؤال غامض، اطرح سؤالاً توضيحياً قبل الإجابة
+6. شجّع الطالب وكن إيجابياً في ردودك
+7. لو الموضوع خارج نطاق الدراسة الجامعية، وجّه الطالب بلطف
+8. استخدم الرموز والتنسيق لجعل الإجابة واضحة (✅ ❌ 📌 💡 🔹)
+
+تذكّر: أنت تتحدث مع طالب جامعي يحتاج مساعدة حقيقية، لا إجابات مبتسرة.
+"""
+
+def get_user_history(user_id):
+    if user_id not in conversation_history:
+        conversation_history[user_id] = []
+    return conversation_history[user_id]
+
+def add_to_history(user_id, role, content):
+    history = get_user_history(user_id)
+    history.append({"role": role, "content": content})
+    # احتفظ بآخر 10 رسائل فقط عشان ما تتجاوز الـ context
+    if len(history) > 10:
+        conversation_history[user_id] = history[-10:]
+
+def clear_history(user_id):
+    conversation_history[user_id] = []
+
+# ==========================
+# كشف أسئلة الطالب عن بياناته
+# ==========================
+
+KEYWORDS_INFO    = ["بياناتي", "معلوماتي", "اسمي", "قسمي", "مستواي"]
+KEYWORDS_COURSES = ["موادي", "مواد", "مسجل", "المواد المسجلة", "كورساتي", "مقرراتي"]
+KEYWORDS_RESULTS = ["نتيجتي", "نتائجي", "درجاتي", "درجتي", "نتيجة", "نجحت", "رسبت", "علاماتي"]
+
+def check_student_query(text, telegram_user_id):
+    if telegram_user_id not in logged_students:
+        return None
+
+    student_number = logged_students[telegram_user_id]
+
+    is_info    = any(kw in text for kw in KEYWORDS_INFO)
+    is_courses = any(kw in text for kw in KEYWORDS_COURSES)
+    is_results = any(kw in text for kw in KEYWORDS_RESULTS)
+
+    if not (is_info or is_courses or is_results):
+        return None
+
+    response_parts = []
+
+    if is_info:
+        try:
+            cursor.execute(
+                "SELECT full_name, department, level FROM students WHERE student_number=%s",
+                (student_number,)
+            )
+            student = cursor.fetchone()
+            if student:
+                response_parts.append(
+                    "📄 بياناتك الشخصية:\n"
+                    f"👤 الاسم: {student[0]}\n"
+                    f"🏫 القسم: {student[1]}\n"
+                    f"📚 المستوى: {student[2]}"
+                )
+            else:
+                response_parts.append("❌ لم يتم العثور على بياناتك.")
+        except Exception as e:
+            response_parts.append(f"⚠️ خطأ في جلب البيانات: {e}")
+
+    if is_courses:
+        try:
+            cursor.execute("""
+                SELECT c.course_name
+                FROM enrollments e
+                JOIN courses c ON e.course_code = c.course_code
+                WHERE e.student_number=%s
+            """, (student_number,))
+            courses = cursor.fetchall()
+            if courses:
+                courses_text = "\n".join([f"🔹 {c[0]}" for c in courses])
+                response_parts.append(f"📚 المواد المسجلة:\n{courses_text}")
+            else:
+                response_parts.append("📚 لا توجد مواد مسجلة حالياً.")
+        except Exception as e:
+            response_parts.append(f"⚠️ خطأ في جلب المواد: {e}")
+
+    if is_results:
+        try:
+            cursor.execute(
+                "SELECT course_name, grade FROM results WHERE student_number=%s",
+                (student_number,)
+            )
+            results = cursor.fetchall()
+            if results:
+                results_text = "\n".join([f"🔹 {r[0]}: {r[1]}" for r in results])
+                response_parts.append(f"📊 نتائجك:\n{results_text}")
+            else:
+                response_parts.append("📊 لا توجد نتائج مسجلة حالياً.")
+        except Exception as e:
+            response_parts.append(f"⚠️ خطأ في جلب النتائج: {e}")
+
+    return "\n\n".join(response_parts)
+
+def ask_ai(question, user_id=None):
     try:
+        history = get_user_history(user_id) if user_id else []
+
+        # أضف سؤال المستخدم للتاريخ
+        if user_id:
+            add_to_history(user_id, "user", question)
+
+        messages = [{"role": "system", "content": SYSTEM_PROMPT}] + (
+            get_user_history(user_id) if user_id else [{"role": "user", "content": question}]
+        )
 
         completion = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
-            messages=[
-                {
-                    "role": "system",
-                    "content": """
-أنت مساعد جامعي ذكي.
-أجب دائماً باللغة العربية.
-ساعد الطلاب في البرمجة وقواعد البيانات والشبكات
-والذكاء الاصطناعي والدراسة الجامعية.
-"""
-                },
-                {
-                    "role": "user",
-                    "content": question
-                }
-            ]
+            messages=messages,
+            max_tokens=2048,
+            temperature=0.7,
         )
 
-        return completion.choices[0].message.content
+        answer = completion.choices[0].message.content
+
+        # أضف رد المساعد للتاريخ
+        if user_id:
+            add_to_history(user_id, "assistant", answer)
+
+        return answer
 
     except Exception as e:
-
-        return str(e)
+        return f"⚠️ حدث خطأ: {str(e)}"
 # ==========================
 # START
 # ==========================
@@ -260,18 +384,34 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if text == "🤖 اسأل الذكاء الاصطناعي":
 
         context.user_data["ai_mode"] = True
+        clear_history(user_id)
 
         await update.message.reply_text(
-            "🤖 اكتب سؤالك."
+            "🤖 مرحباً! أنا المساعد الذكي.\n\n"
+            "اكتب سؤالك وسأجيبك بشكل شامل ومفصّل.\n"
+            "يمكنك الاستمرار في المحادثة وسأتذكر السياق.\n\n"
+            "اكتب /reset لبدء محادثة جديدة."
         )
 
         return
 
+    if text == "/reset" and context.user_data.get("ai_mode"):
+        clear_history(user_id)
+        await update.message.reply_text("🔄 تم مسح المحادثة، ابدأ سؤالك من جديد.")
+        return
+
     if context.user_data.get("ai_mode"):
 
-        answer = ask_ai(text)
+        await update.message.reply_text("⏳ جاري التفكير...")
 
-        await update.message.reply_text(answer)
+        # أولاً تحقق لو الطالب سأل عن بياناته من قاعدة البيانات
+        db_answer = check_student_query(text, user_id)
+
+        if db_answer:
+            await update.message.reply_text(db_answer)
+        else:
+            answer = ask_ai(text, user_id=user_id)
+            await update.message.reply_text(answer)
 
         return
 # ==========================
@@ -356,6 +496,11 @@ app.add_handler(
         handle_message
     )
 )
+
+print("Bot Running...")
+
+app.run_polling()
+
 
 print("Bot Running...")
 
